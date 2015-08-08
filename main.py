@@ -1,36 +1,23 @@
-from numpy.linalg import svd
-from numpy import array
-
-CLUSTERS = 2
-
-character_index_lookup = {
-    0: "Papageno",
-    1: "Figaro",
-    2: "Mimi",
-    3: "Rudolfo",
-    4: "Susanna"
-}
+import numpy as np
+from constants import ARCHETYPES_CACHE_FILE
+from constants import character_index_lookup
+from constants import character_name_lookup
+from helpers import singer_vector_from_resume
 
 
-def v_clustered():
-    # Get list of singer resumes
-    singer_matrix = array([
-        (1, 1, 0, 0, 0),
-        (1, 1, 0, 0, 0),
-        (0, 0, 1, 0, 1),
-        (0, 0, 0, 1, 0),
-    ])
+archetypes = np.load(ARCHETYPES_CACHE_FILE)
 
-    U, s, V = svd(singer_matrix)
 
-    return V[:CLUSTERS]
+# Each column represents a character
+def fach_me(known_character_ids):
+    input_singer_vector = singer_vector_from_resume(known_character_ids)
 
-# Cache
-clusters = v_clustered()
+    singer_fach = input_singer_vector.dot(archetypes.transpose()).dot(archetypes)
 
-input_singer_vector = array([1, 0, 0, 0, 0])
-singer_fach = input_singer_vector.dot(clusters.transpose()).dot(clusters)
+    return [character_index_lookup[index] for index, score in enumerate(singer_fach) if score > 0]
 
-for index, score in enumerate(singer_fach):
-    if score > 0:
-        print character_index_lookup[index]
+
+suggested_character_ids = fach_me([123])
+
+for id in suggested_character_ids:
+    print character_name_lookup[id]
