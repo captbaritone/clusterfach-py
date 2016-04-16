@@ -1,38 +1,17 @@
-import numpy as np
+from collections import defaultdict
 
-from constants import ARCHETYPES_CACHE_FILE
-from constants import singer_resumes
-from constants import ARCHETYPE_COUNT_K
+from clusterfach import generate_archetypes
 
 
-def generate_archetypes(list_of_singers_resumes):
-    singer_matrix = _singer_matrix_from_resumes(list_of_singers_resumes)
+def get_singer_resumes():
+    singer_resumes_dict = defaultdict(set)
 
-    # Do magic with maths
-    U, s, V = np.linalg.svd(singer_matrix)
+    with open("singer_pairs.txt", "r") as pairs:
+        for line in pairs.readlines():
+            singer, character = tuple(line[0:-1].split(", "))
+            singer_resumes_dict[singer].add(character)
 
-    archetypes = V[:ARCHETYPE_COUNT_K]
+    # Convert dict of sets to list of lists
+    return [list(resume) for singer_id, resume in singer_resumes_dict.iteritems()]
 
-    f = open(ARCHETYPES_CACHE_FILE, 'w')
-    np.save(f, archetypes)
-
-
-def _singer_matrix_from_resumes(list_of_singer_resumes):
-    characters = set()
-    for singer_resume in list_of_singer_resumes:
-        for character in singer_resume:
-            characters.add(character)
-
-    ordered_characters = list(characters)
-
-    singer_matrix = []
-    for singer_resume in list_of_singer_resumes:
-        singer_vector = []
-        for character in ordered_characters:
-            singer_vector.append(character in singer_resume)
-        singer_matrix.append(singer_vector)
-
-    # Rows represent signers, columns represent characters
-    return np.array(singer_matrix)
-
-generate_archetypes(singer_resumes)
+generate_archetypes(get_singer_resumes(), 20)
