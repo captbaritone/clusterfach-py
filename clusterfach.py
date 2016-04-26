@@ -2,66 +2,69 @@ import numpy as np
 import scipy.sparse
 from sparsesvd import sparsesvd
 
-CACHE= 'cache.npz'
+CACHE = 'cache.npz'
 ARCHETYPES = 'archetypes'
-CHARACTERS = 'characters'
+ITEMS = 'items'
 
 
-def fach_me(singer_resume, cache_file=CACHE):
-    """ Given a list of ids, return dictionary ids with similarity scores """
+def recomendations_for(user_items, cache_file=CACHE):
+    """
+    Given a list of ids, return a list of dicts containing ids and similarity
+    scores
+    """
 
     with np.load(cache_file) as data:
         archetypes = data[ARCHETYPES]
-        character_positions = data[CHARACTERS].item()
+        item_positions = data[ITEMS].item()
 
-    input_singer_vector = np.zeros((len(character_positions), 1))
-    for character_id in singer_resume:
-        position = character_positions[character_id]
-        input_singer_vector[position] = True
+    user_vector = np.zeros((len(item_positions), 1))
+    for item in user_items:
+        position = item_positions[item]
+        user_vector[position] = True
 
-    input_singer_vector = input_singer_vector.transpose()
+    user_vector = user_vector.transpose()
 
-    singer_fach = input_singer_vector.dot(archetypes.transpose()).dot(archetypes)
+    rec_vector = user_vector.dot(archetypes.transpose()).dot(archetypes)
 
-    suggested_roles = []
-    for character, index in character_positions.iteritems():
-        suggested_roles.append({'id': character, 'score': singer_fach[0, index]})
+    recomendations = []
+    for item, index in item_positions.iteritems():
+        recomendations.append({'item': item, 'score': rec_vector[0, index]})
 
-    return sorted(suggested_roles, key=lambda k: k['score'], reverse=True)
+    return sorted(recomendations, key=lambda k: k['score'], reverse=True)
 
 
-def generate_archetypes(singer_resumes, archetype_count_k=20, cache_file=CACHE):
+def generate_archetypes(users, archetype_count_k=20, cache_file=CACHE):
     """ Generate and write to disk an archetype matrix given a population """
 
-    # Generate a unique, ordered, list of characters
-    characters = set()  # Could optimized by using single comprehension
-    for singer_resume in singer_resumes:
-        characters.update(singer_resume)
-    characters = list(characters)
+    # Generate a unique, ordered, list of items
+    items = set()  # Could optimized by using single comprehension
+    for user_items in users:
+        items.update(user_items)
+    items = list(items)
 
-    # Create a dict to lookup character index by id
-    character_positions = dict()
-    for i, character in enumerate(characters):
-        character_positions[character] = i
+    # Create a dict to lookup item indexes by id
+    item_positions = dict()
+    for i, item in enumerate(items):
+        item_positions[item] = i
 
     # Construct an empty matrix to populate
-    dimensions = len(singer_resumes), len(characters)
-    singer_matrix = scipy.sparse.lil_matrix(dimensions)
+    dimensions = len(users), len(items)
+    user_matrix = scipy.sparse.lil_matrix(dimensions)
 
     # Populate the matrix
-    for j, singer_resume in enumerate(singer_resumes):
-        for character in singer_resume:
-            position = character_positions[character]
-            singer_matrix[j, position] = True
+    for j, user_items in enumerate(users):
+        for item in user_items:
+            position = item_positions[item]
+            user_matrix[j, position] = True
 
     # Convert matrix to a sparse matrix
-    sparse_singer_matrix = scipy.sparse.csc_matrix(singer_matrix)
+    sparse_user_matrix = scipy.sparse.csc_matrix(user_matrix)
 
     # Do magic with maths
-    U, s, V = sparsesvd(sparse_singer_matrix, archetype_count_k)
+    U, s, V = sparsesvd(sparse_user_matrix, archetype_count_k)
 
     archetypes = V
 
     # Cache the data for later use
-    arrays = {CHARACTERS: character_positions, ARCHETYPES: archetypes}
+    arrays = {ITEMS: item_positions, ARCHETYPES: archetypes}
     np.savez(cache_file, **arrays)

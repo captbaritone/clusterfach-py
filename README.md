@@ -51,9 +51,8 @@ the pieces together.
 
 1. Find a good relatable example data-set
 2. Create example app
-3. Make variable names/methods generic
-4. Add tests
-5. Upload to pypi
-6. Setup Travis.ci
+3. Add tests
+4. Upload to pypi
+5. Setup Travis.ci
 
 

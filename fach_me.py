@@ -1,6 +1,6 @@
 import sys
 import re
-from clusterfach import fach_me
+from clusterfach import recomendations_for
 
 character_names = {}
 
@@ -16,9 +16,9 @@ print '\n'.join(character_names[id] for id in me)
 
 print "----- You should also sing -----"
 
-suggested_character_ids = fach_me(me)
+suggested_character_ids = recomendations_for(me)
 
 for character in suggested_character_ids[:20]:
-    id = character['id']
+    id = character['item']
     name = character_names[id]
     print "%s: %s (%s)" % (id, name, character['score'])
